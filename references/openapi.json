@@ -1,0 +1,4852 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Open Railway Data API",
+    "description": "\r\n## 🚆 Public API for train schedules, real-time operations and disruptions.\r\n\r\n### Available Endpoints:\r\n\r\n#### Schedules (Planned Timetable)\r\n- **GET /api/v1/schedules** - Train schedules with filters\r\n- **GET /api/v1/schedules/route/{scheduleId}/{orderId}** - Single route details with operating dates\r\n- **GET /api/v1/schedules/routes/{date}** - List of all route IDs for a specific date\r\n\r\n#### Operations (Real-time)\r\n- **GET /api/v1/operations** - Real-time train operations with delays\r\n- **GET /api/v1/operations/train/{scheduleId}/{orderId}/{operatingDate}** - Single train execution details\r\n- **GET /api/v1/operations/statistics?date={date}** - Train status statistics for a specific day (default: today)\r\n\r\n#### Disruptions\r\n- **GET /api/v1/disruptions** - Traffic disruptions\r\n\r\n#### Utilities\r\n- **GET /api/v1/data-version** - Check data version\r\n- **GET /api/v1/fields/{endpoint}** - Field dictionaries for JSON short names\r\n\r\n### Authentication:\r\nUse `X-API-Key` header with your API key.\r\n\r\n### Rate Limits:\r\n- **Basic**: 100 req/hour, 1,000 req/day\r\n- **Standard**: 500 req/hour, 5,000 req/day  \r\n- **Premium**: 2,000 req/hour, 20,000 req/day\r\n",
+    "contact": {
+      "name": "PLK Support",
+      "email": "pdp-api@plk-sa.pl"
+    },
+    "version": "v1.1.4"
+  },
+  "paths": {
+    "/api/v1/apikey/generate": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Generates a new API key and submits access request to administrators",
+        "requestBody": {
+          "description": "API key generation request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateApiKeyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateApiKeyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/accept-terms": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Akceptuje aktualną wersję regulaminu dla istniejącego klucza API",
+        "requestBody": {
+          "description": "Dane akceptacji regulaminu",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTermsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTermsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTermsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/verify-email": {
+      "get": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Weryfikuje adres email za pomocą tokenu z linka",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "description": "Token weryfikacyjny z emaila",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Weryfikuje adres email za pomocą 8-cyfrowego kodu.\r\nWymaga podania klucza API w nagłówku X-Api-Key - weryfikuje konkretny klucz.",
+        "requestBody": {
+          "description": "Kod weryfikacyjny",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailByCodeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailByCodeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailByCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/resend-verification": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Wysyła ponownie email weryfikacyjny dla klucza API podanego w nagłówku X-Api-Key.\r\nWymaga podania klucza API - email jest pobierany z kontekstu klucza.\r\nRate limiting: max 1 na minutę, 5 na godzinę.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/limit-request": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Składa wniosek o zmianę pakietu limitów (Basic, Standard, Premium) dla klucza API podanego w nagłówku.\r\nEndpoint jest dostępny również po przekroczeniu limitu zapytań. Dla jednego klucza może istnieć tylko jeden oczekujący wniosek.",
+        "requestBody": {
+          "description": "Wnioskowany pakiet i uzasadnienie",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LimitChangeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LimitChangeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LimitChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Wniosek został złożony"
+          },
+          "400": {
+            "description": "Nieprawidłowy pakiet, brak uzasadnienia lub pakiet jest już przypisany",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Dla klucza istnieje już oczekujący wniosek",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Zwraca obecne limity klucza, dostępne pakiety oraz ostatnie wnioski o zmianę limitu.\r\nEndpoint jest dostępny również po przekroczeniu limitu zapytań.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/usage": {
+      "get": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Gets usage statistics for the authenticated API key",
+        "parameters": [
+          {
+            "name": "fromDate",
+            "in": "query",
+            "description": "Start date for statistics (optional, defaults to 30 days ago)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "description": "End date for statistics (optional, defaults to now)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/info": {
+      "get": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Gets information about the current API key",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/deactivate": {
+      "post": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Deactivates the current API key",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/apikey/update": {
+      "put": {
+        "tags": [
+          "ApiKey"
+        ],
+        "summary": "Updates the current API key settings (Administrator only)",
+        "requestBody": {
+          "description": "Update request with new settings",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApiKeyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApiKeyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/data-version": {
+      "get": {
+        "tags": [
+          "DataVersion"
+        ],
+        "summary": "Pobiera aktualną wersję danych (Guid) i timestamp",
+        "description": "Endpoint publiczny - wymaga tylko ważnego klucza API.\r\nZwraca wersję danych (GUID) która zmienia się przy każdej aktualizacji cache.\r\nPole dataVersion to wynikowy GUID z połączenia wersji planu i wykonania — zmienia się gdy zmieni się którykolwiek z nich.\r\nDodatkowo zwracane są osobne wersje: schedulesVersion (plan) i operationsVersion (wykonanie/utrudnienia).\r\nMożna użyć do sprawdzenia czy dane się zmieniły od ostatniego pobrania.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataVersionResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/carriers": {
+      "get": {
+        "tags": [
+          "Dictionaries"
+        ],
+        "summary": "Pobiera listę wszystkich przewoźników",
+        "description": "Zwraca listę przewoźników z ich skrótami (kodami) używanymi w parametrach carriersInclude/carriersExclude.\r\n\r\nPrzykładowe skróty przewoźników:\r\n- **IC** - PKP Intercity\r\n- **KM** - Koleje Mazowieckie\r\n- **KS** - Koleje Śląskie\r\n- **KD** - Koleje Dolnośląskie",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarriersResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarriersResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarriersResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/stations": {
+      "get": {
+        "tags": [
+          "Dictionaries"
+        ],
+        "summary": "Pobiera listę wszystkich stacji",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filtruj po nazwie stacji (początek nazwy)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Numer strony (domyślnie 1)",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Rozmiar strony (domyślnie 500, max 10000). Aby pobrać wszystkie stacje w jednym żądaniu użyj pageSize=10000.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/commercial-categories": {
+      "get": {
+        "tags": [
+          "Dictionaries"
+        ],
+        "summary": "Pobiera listę kategorii handlowych",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialCategoriesResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialCategoriesResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommercialCategoriesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/stop-types": {
+      "get": {
+        "tags": [
+          "Dictionaries"
+        ],
+        "summary": "Pobiera listę typów postojów",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopTypesResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopTypesResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StopTypesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dictionaries/cities": {
+      "get": {
+        "tags": [
+          "Dictionaries"
+        ],
+        "summary": "Pobiera listę miast z agregacją liczby stacji",
+        "description": "Zwraca słownik miast wykrytych w bazie stacji wraz z liczbą stacji per miasto\r\noraz identyfikatorami tych stacji. Można używać do wyszukiwania rozkładów na poziomie aglomeracji\r\n(zamiast pojedynczej stacji) — należy następnie przekazać wszystkie ID stacji w parametrze `stations`\r\nendpointów `/schedules`, `/operations` lub `/disruptions`.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filtruj po fragmencie nazwy miasta (case-insensitive). Pusty = wszystkie miasta.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitiesResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitiesResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitiesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/disruptions": {
+      "get": {
+        "tags": [
+          "Disruptions"
+        ],
+        "summary": "Pobiera utrudnienia na liniach kolejowych",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "description": "Data początkowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "description": "Data końcowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "stations",
+            "in": "query",
+            "description": "Lista ID stacji oddzielonych przecinkami. Domyślnie: wszystkie stacje",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersInclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do uwzględnienia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersExclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do wykluczenia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dictionaries",
+            "in": "query",
+            "description": "Czy dołączyć słowniki (DisruptionTypes, Stations) w odpowiedzi. Domyślnie: true. Ustaw `false` aby zmniejszyć transfer.",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/disruptions/shortened": {
+      "get": {
+        "tags": [
+          "Disruptions"
+        ],
+        "summary": "Pobiera utrudnienia na liniach kolejowych (wersja ze skróconymi nazwami pól)",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "description": "Data początkowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "description": "Data końcowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "stations",
+            "in": "query",
+            "description": "Lista ID stacji oddzielonych przecinkami. Domyślnie: wszystkie stacje",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersInclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do uwzględnienia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersExclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do wykluczenia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dictionaries",
+            "in": "query",
+            "description": "Czy dołączyć słowniki (dt, sts) w odpowiedzi. Domyślnie: true. Ustaw `false` aby zmniejszyć transfer.",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponseShortenedDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponseShortenedDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponseShortenedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fields/operations": {
+      "get": {
+        "tags": [
+          "FieldDictionary"
+        ],
+        "summary": "Pobiera słownik skrótów pól JSON dla endpointu /operations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fields/operations/csv": {
+      "get": {
+        "tags": [
+          "FieldDictionary"
+        ],
+        "summary": "Pobiera słownik skrótów pól jako plain text (CSV)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fields/schedules": {
+      "get": {
+        "tags": [
+          "FieldDictionary"
+        ],
+        "summary": "Pobiera słownik skrótów pól JSON dla endpointu /schedules",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fields/schedules/csv": {
+      "get": {
+        "tags": [
+          "FieldDictionary"
+        ],
+        "summary": "Pobiera słownik skrótów pól jako plain text (CSV) dla schedules",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fields/disruptions": {
+      "get": {
+        "tags": [
+          "FieldDictionary"
+        ],
+        "summary": "Pobiera słownik skrótów pól JSON dla endpointu /disruptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDictionaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fields/disruptions/csv": {
+      "get": {
+        "tags": [
+          "FieldDictionary"
+        ],
+        "summary": "Pobiera słownik skrótów pól jako plain text (CSV) dla disruptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/version": {
+      "get": {
+        "tags": [
+          "OpenDataAPI"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/operations": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Pobiera wykonanie pociągów w czasie rzeczywistym",
+        "parameters": [
+          {
+            "name": "stations",
+            "in": "query",
+            "description": "Lista ID stacji oddzielonych przecinkami. Domyślnie: wszystkie stacje",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersInclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do uwzględnienia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersExclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do wykluczenia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Numer strony (domyślnie: 1)",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Liczba rekordów na stronę (domyślnie: 1000, max: 5000)",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "fullRoutes",
+            "in": "query",
+            "description": "Jeśli true, zwraca pełne trasy pociągów przejeżdżających przez podane stacje (domyślnie: false)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "withPlanned",
+            "in": "query",
+            "description": "Jeśli true, zwraca również planowe czasy przyjazdu/odjazdu oraz obliczone opóźnienia w minutach (domyślnie: false)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operations/shortened": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Pobiera wykonanie pociągów w czasie rzeczywistym (wersja ze skróconymi nazwami pól)",
+        "parameters": [
+          {
+            "name": "stations",
+            "in": "query",
+            "description": "Lista ID stacji oddzielonych przecinkami. Domyślnie: wszystkie stacje",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersInclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do uwzględnienia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersExclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do wykluczenia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Numer strony (domyślnie: 1)",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Liczba rekordów na stronę (domyślnie: 1000, max: 5000)",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "fullRoutes",
+            "in": "query",
+            "description": "Jeśli true, zwraca pełne trasy pociągów przejeżdżających przez podane stacje (domyślnie: false)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "withPlanned",
+            "in": "query",
+            "description": "Jeśli true, zwraca również planowe czasy przyjazdu/odjazdu oraz obliczone opóźnienia w minutach (domyślnie: false)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponseShortenedDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponseShortenedDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponseShortenedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operations/train/{scheduleId}/{orderId}/{operatingDate}": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Pobiera trasę konkretnego pociągu w wykonaniu",
+        "parameters": [
+          {
+            "name": "scheduleId",
+            "in": "path",
+            "description": "ID rozkładu jazdy",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "ID zamówienia",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "operatingDate",
+            "in": "path",
+            "description": "Data kursowania (format: yyyy-MM-dd)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainOperationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainOperationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainOperationDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/operations/statistics": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Pobiera statystyki statusów pociągów dla wybranego dnia",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Data dla której pobrać statystyki (domyślnie dzisiaj). Format: yyyy-MM-dd.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationStatisticsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationStatisticsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationStatisticsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy": {
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Pobiera treść polityki prywatności w formacie Markdown",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Język dokumentu: pl (domyślnie) lub en",
+            "schema": {
+              "type": "string",
+              "default": "pl"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyContentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyContentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyContentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/html": {
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Pobiera treść polityki prywatności w formacie HTML",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Język dokumentu: pl (domyślnie) lub en",
+            "schema": {
+              "type": "string",
+              "default": "pl"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/schedules": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Pobiera rozkład planowy dla podanych parametrów",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "description": "Data początkowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "description": "Data końcowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "stations",
+            "in": "query",
+            "description": "Lista ID stacji oddzielonych przecinkami (np. \"38851,38844\") - filtr any-match. Nie łączyć z from/to/fromStations/toStations.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Nazwa miasta początkowego (np. \"Warszawa\"). Wymaga parametru 'to'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Nazwa miasta docelowego (np. \"Berlin\"). Wymaga parametru 'from'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromStations",
+            "in": "query",
+            "description": "Lista ID stacji początkowych (np. \"38851,38844\"). Wymaga 'toStations'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toStations",
+            "in": "query",
+            "description": "Lista ID stacji docelowych (np. \"247482\"). Wymaga 'fromStations'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersInclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do uwzględnienia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersExclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do wykluczenia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fullRoute",
+            "in": "query",
+            "description": "Jeśli true, zwraca pełne trasy pociągów (domyślnie: false - przycina do odcinka from→to)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "dictionaries",
+            "in": "query",
+            "description": "Jeśli true, dołącza słowniki do odpowiedzi (domyślnie: true)",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/shortened": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Pobiera rozkład planowy dla podanych parametrów (wersja ze skróconymi nazwami pól JSON - mniejszy rozmiar odpowiedzi)",
+        "description": "Ta wersja API zwraca dane ze skróconymi nazwami pól JSON (np. \"f\" zamiast \"From\"), \r\nco znacząco zmniejsza rozmiar odpowiedzi. Użyj tego endpointu gdy zależy Ci na minimalnym transferze danych.",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "description": "Data początkowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "description": "Data końcowa (format: yyyy-MM-dd). Domyślnie: dzisiaj",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "stations",
+            "in": "query",
+            "description": "Lista ID stacji oddzielonych przecinkami (np. \"38851,38844\") - filtr any-match. Nie łączyć z from/to/fromStations/toStations.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Nazwa miasta początkowego (np. \"Warszawa\"). Wymaga parametru 'to'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Nazwa miasta docelowego (np. \"Berlin\"). Wymaga parametru 'from'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromStations",
+            "in": "query",
+            "description": "Lista ID stacji początkowych (np. \"38851,38844\"). Wymaga 'toStations'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toStations",
+            "in": "query",
+            "description": "Lista ID stacji docelowych (np. \"247482\"). Wymaga 'fromStations'. Nie łączyć z 'stations'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersInclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do uwzględnienia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "carriersExclude",
+            "in": "query",
+            "description": "Lista skrótów przewoźników do wykluczenia (opcjonalnie)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fullRoute",
+            "in": "query",
+            "description": "Jeśli true, zwraca pełne trasy pociągów (domyślnie: false - przycina do odcinka from→to)",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "dictionaries",
+            "in": "query",
+            "description": "Jeśli true, dołącza słowniki do odpowiedzi (domyślnie: true)",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponseShortenedDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponseShortenedDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponseShortenedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/route/{scheduleId}/{orderId}": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Pobiera trasę konkretnego pociągu z rozkładu planowego",
+        "parameters": [
+          {
+            "name": "scheduleId",
+            "in": "path",
+            "description": "ID rozkładu jazdy",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "ID zamówienia",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/route/{scheduleId}/{orderId}/shortened": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Pobiera trasę konkretnego pociągu z rozkładu planowego (wersja ze skróconymi nazwami pól JSON)",
+        "description": "Ta wersja API zwraca dane ze skróconymi nazwami pól JSON, co zmniejsza rozmiar odpowiedzi.",
+        "parameters": [
+          {
+            "name": "scheduleId",
+            "in": "path",
+            "description": "ID rozkładu jazdy",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "ID zamówienia",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteShortenedDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteShortenedDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteShortenedDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/routes/{date}": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Pobiera listę ID tras kursujących w podanej dacie",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "description": "Data kursowania (format: yyyy-MM-dd)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteIdsResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteIdsResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteIdsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/schedules/routes/{date}/shortened": {
+      "get": {
+        "tags": [
+          "Schedules"
+        ],
+        "summary": "Pobiera listę ID tras kursujących w podanej dacie (wersja ze skróconymi nazwami pól JSON)",
+        "description": "Ta wersja API zwraca dane ze skróconymi nazwami pól JSON, co zmniejsza rozmiar odpowiedzi.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "description": "Data kursowania (format: yyyy-MM-dd)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteIdsResponseShortenedDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteIdsResponseShortenedDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteIdsResponseShortenedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms/version": {
+      "get": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Pobiera aktualną wersję regulaminu",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsVersionResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsVersionResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsVersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms": {
+      "get": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Pobiera pełną treść regulaminu",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Język dokumentu: pl (domyślnie) lub en",
+            "schema": {
+              "type": "string",
+              "default": "pl"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsContentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsContentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TermsContentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms/html": {
+      "get": {
+        "tags": [
+          "Terms"
+        ],
+        "summary": "Pobiera treść regulaminu w formacie HTML",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Język dokumentu: pl (domyślnie) lub en",
+            "schema": {
+              "type": "string",
+              "default": "pl"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcceptTermsRequest": {
+        "type": "object",
+        "properties": {
+          "acceptTermsOfService": {
+            "type": "boolean",
+            "description": "Akceptacja regulaminu (musi być true)"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for accepting Terms of Service"
+      },
+      "AffectedRouteDto": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "Identyfikator zamówienia",
+            "format": "int32"
+          },
+          "trainOrderId": {
+            "type": "integer",
+            "description": "Identyfikator zamówienia pociągu. Zwracany tylko gdy różni się od OrderId.",
+            "format": "int32",
+            "nullable": true
+          },
+          "operatingDate": {
+            "type": "string",
+            "description": "Data kursowania",
+            "format": "date"
+          },
+          "stationId": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "sequenceNumber": {
+            "type": "integer",
+            "description": "Numer kolejności na trasie",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Trasa dotknięta utrudnieniem"
+      },
+      "AffectedRouteShortenedDto": {
+        "type": "object",
+        "properties": {
+          "sid": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy",
+            "format": "int32"
+          },
+          "oid": {
+            "type": "integer",
+            "description": "ID zamówienia",
+            "format": "int32"
+          },
+          "toid": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu",
+            "format": "int32",
+            "nullable": true
+          },
+          "od": {
+            "type": "string",
+            "description": "Data kursowania",
+            "format": "date"
+          },
+          "stid": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "seq": {
+            "type": "integer",
+            "description": "Numer kolejności na trasie",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Trasa dotknięta utrudnieniem (wersja ze skróconymi nazwami)"
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Kod błędu (np. \"Unauthorized\", \"BadRequest\", \"NotFound\")",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Czytelny komunikat dla użytkownika",
+            "nullable": true
+          },
+          "details": {
+            "type": "string",
+            "description": "Dodatkowe szczegóły błędu (opcjonalne)",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp wystąpienia błędu",
+            "format": "date-time"
+          },
+          "path": {
+            "type": "string",
+            "description": "Ścieżka żądania",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "description": "ID śledzenia dla logów",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Standardowa struktura odpowiedzi błędu API"
+      },
+      "CarrierDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Skrót (kod) przewoźnika - używany w filtrach",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Pełna nazwa przewoźnika",
+            "nullable": true
+          },
+          "validFrom": {
+            "type": "string",
+            "description": "Data obowiązywania od",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validTo": {
+            "type": "string",
+            "description": "Data obowiązywania do",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Dane przewoźnika"
+      },
+      "CarrierUsageInfo": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Informacje o użyciu kodów przewoźników"
+      },
+      "CarriersResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "carriers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CarrierDto"
+            },
+            "nullable": true
+          },
+          "usage": {
+            "$ref": "#/components/schemas/CarrierUsageInfo"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą przewoźników"
+      },
+      "CitiesResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "cities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CityDto"
+            },
+            "description": "Lista miast z liczbą stacji i ID stacji",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą miast (przywrócona w wersji 1.1.0 — patrz changelog)."
+      },
+      "CityDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nazwa miasta (uppercase, np. \"WARSZAWA\")",
+            "nullable": true
+          },
+          "stationCount": {
+            "type": "integer",
+            "description": "Liczba stacji w mieście",
+            "format": "int32"
+          },
+          "stationIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "ID wszystkich stacji w tym mieście (do użycia w parametrze stations)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Miasto z agregacją stacji"
+      },
+      "CommercialCategoriesResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "commercialCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommercialCategoryDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą kategorii handlowych"
+      },
+      "CommercialCategoryDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Kod kategorii handlowej",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Nazwa kategorii handlowej",
+            "nullable": true
+          },
+          "carrierCode": {
+            "type": "string",
+            "description": "Kod przewoźnika",
+            "nullable": true
+          },
+          "speedCategoryCode": {
+            "type": "string",
+            "description": "Kod kategorii szybkości",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Dane kategorii handlowej"
+      },
+      "ConnectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID powiązania (unikalne w obrębie odpowiedzi)",
+            "nullable": true
+          },
+          "typeCode": {
+            "type": "string",
+            "description": "Kod typu powiązania. Słownik (TypyPowiazan): KONTY = kontynuacja, PODZI = podział,\r\nPOLAC = połączenie, SKOMU = skomunikowanie, WYMWA = wymiana wagonów, ZKA = ZKA.",
+            "nullable": true
+          },
+          "typeName": {
+            "type": "string",
+            "description": "Czytelna nazwa typu powiązania (z bieżącego słownika).",
+            "nullable": true
+          },
+          "stationId": {
+            "type": "integer",
+            "description": "ID stacji, na której fizycznie odbywa się operacja powiązania.",
+            "format": "int32"
+          },
+          "wagonNumbers": {
+            "type": "string",
+            "description": "Numery wagonów, których dotyczy operacja (np. dla WYMWA — wagony przepinane).",
+            "nullable": true
+          },
+          "train1OrderId": {
+            "type": "integer",
+            "description": "OrderId pociągu źródłowego — odpowiada polu RouteDto.OrderId tej samej trasy.",
+            "format": "int32"
+          },
+          "train1StationOrder": {
+            "type": "integer",
+            "description": "Kolejność stacji w obrębie pociągu źródłowego (numer porządkowy w jego trasie).",
+            "format": "int32"
+          },
+          "train1DayOffset": {
+            "type": "integer",
+            "description": "Offset doby operacyjnej dla pociągu źródłowego (0 = doba bazowa, +1 = następna doba itd.).",
+            "format": "int32"
+          },
+          "train2OrderId": {
+            "type": "integer",
+            "description": "OrderId pociągu docelowego — odpowiada polu RouteDto.OrderId trasy docelowej.",
+            "format": "int32"
+          },
+          "train2StationOrder": {
+            "type": "integer",
+            "description": "Kolejność stacji w obrębie pociągu docelowego.",
+            "format": "int32"
+          },
+          "train2DayOffset": {
+            "type": "integer",
+            "description": "Offset doby operacyjnej dla pociągu docelowego.",
+            "format": "int32"
+          },
+          "operatingDates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Daty obowiązywania powiązania (przecięcie OperatingDates obu pociągów).",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Powiązanie między pociągami w jednej operacji rozkładowej (np. wymiana wagonów, podział, skomunikowanie).\r\nPola Train1* opisują \"pociąg źródłowy\" (z którego pasażer/wagon przechodzi),\r\npola Train2* opisują \"pociąg docelowy\" (do którego pasażer/wagon trafia).\r\nSama operacja odbywa się fizycznie na stacji wskazanej w polu StationId."
+      },
+      "ConnectionShortenedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID powiązania",
+            "nullable": true
+          },
+          "tc": {
+            "type": "string",
+            "description": "Kod typu powiązania",
+            "nullable": true
+          },
+          "tn": {
+            "type": "string",
+            "description": "Nazwa typu powiązania",
+            "nullable": true
+          },
+          "sid": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "wn": {
+            "type": "string",
+            "description": "Numery wagonów",
+            "nullable": true
+          },
+          "t1o": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu 1",
+            "format": "int32"
+          },
+          "t1s": {
+            "type": "integer",
+            "description": "Kolejność stacji pociągu 1",
+            "format": "int32"
+          },
+          "t1d": {
+            "type": "integer",
+            "description": "Offset dnia pociągu 1",
+            "format": "int32"
+          },
+          "t2o": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu 2",
+            "format": "int32"
+          },
+          "t2s": {
+            "type": "integer",
+            "description": "Kolejność stacji pociągu 2",
+            "format": "int32"
+          },
+          "t2d": {
+            "type": "integer",
+            "description": "Offset dnia pociągu 2",
+            "format": "int32"
+          },
+          "od": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Daty obowiązywania",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Powiązanie między pociągami (skrócone nazwy)"
+      },
+      "DataVersionResponse": {
+        "type": "object",
+        "properties": {
+          "dataVersion": {
+            "type": "string",
+            "description": "Wynikowa wersja danych (GUID) - zmienia się przy aktualizacji planu lub wykonania",
+            "format": "uuid",
+            "nullable": true
+          },
+          "schedulesVersion": {
+            "type": "string",
+            "description": "Wersja danych planowych / rozkładowych (GUID)",
+            "format": "uuid",
+            "nullable": true
+          },
+          "operationsVersion": {
+            "type": "string",
+            "description": "Wersja danych operacyjnych / wykonania i utrudnień (GUID)",
+            "format": "uuid",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp ostatniej aktualizacji cache (UTC)",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z wersją danych"
+      },
+      "DatePeriodDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Data początkowa",
+            "format": "date-time",
+            "nullable": true
+          },
+          "to": {
+            "type": "string",
+            "description": "Data końcowa",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Okres czasu (pełne nazwy pól)"
+      },
+      "DatePeriodShortenedDto": {
+        "type": "object",
+        "properties": {
+          "f": {
+            "type": "string",
+            "description": "Data początkowa",
+            "format": "date-time",
+            "nullable": true
+          },
+          "t": {
+            "type": "string",
+            "description": "Data końcowa",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Okres czasu (skrócone nazwy)"
+      },
+      "DictionariesDto": {
+        "type": "object",
+        "properties": {
+          "stations": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StationDictionaryDto"
+            },
+            "description": "Słownik stacji",
+            "nullable": true
+          },
+          "services": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ServiceDictionaryDto"
+            },
+            "description": "Słownik usług",
+            "nullable": true
+          },
+          "connectionTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik typów powiązań",
+            "nullable": true
+          },
+          "carriers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik przewoźników",
+            "nullable": true
+          },
+          "commercialCategories": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik kategorii handlowych",
+            "nullable": true
+          },
+          "stopTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik typów postojów",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Słowniki (pełne nazwy pól)"
+      },
+      "DictionariesShortenedDto": {
+        "type": "object",
+        "properties": {
+          "st": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StationDictionaryShortenedDto"
+            },
+            "description": "Słownik stacji",
+            "nullable": true
+          },
+          "sv": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ServiceDictionaryShortenedDto"
+            },
+            "description": "Słownik usług",
+            "nullable": true
+          },
+          "ct": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik typów powiązań",
+            "nullable": true
+          },
+          "cr": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik przewoźników",
+            "nullable": true
+          },
+          "cc": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik kategorii handlowych",
+            "nullable": true
+          },
+          "sty": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik typów postojów",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Słowniki (skrócone nazwy)"
+      },
+      "DisruptionDto": {
+        "type": "object",
+        "properties": {
+          "disruptionId": {
+            "type": "integer",
+            "description": "ID utrudnienia (wewnętrzne, generowane)",
+            "format": "int64"
+          },
+          "disruptionTypeCode": {
+            "type": "string",
+            "description": "Kod typu utrudnienia (np. \"utr_32\"). Opis dostępny w słowniku DisruptionTypes.",
+            "nullable": true
+          },
+          "startStationId": {
+            "type": "integer",
+            "description": "ID stacji początkowej odcinka utrudnienia (jeśli dotyczy odcinka)",
+            "format": "int32",
+            "nullable": true
+          },
+          "endStationId": {
+            "type": "integer",
+            "description": "ID stacji końcowej odcinka utrudnienia (jeśli dotyczy odcinka)",
+            "format": "int32",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Treść wiadomości (pełna, przetworzona)",
+            "nullable": true
+          },
+          "affectedRoutes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffectedRouteDto"
+            },
+            "description": "Lista tras dotkniętych utrudnieniem",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Utrudnienie"
+      },
+      "DisruptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "disruptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DisruptionDto"
+            },
+            "description": "Lista utrudnień",
+            "nullable": true
+          },
+          "disruptionTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik typów utrudnień (kod -> nazwa). Pomijany w odpowiedzi gdy parametr `dictionaries=false`.",
+            "nullable": true
+          },
+          "stations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik stacji (id -> nazwa). Pomijany w odpowiedzi gdy parametr `dictionaries=false`.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO dla utrudnień - odpowiedź API"
+      },
+      "DisruptionResponseShortenedDto": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "ds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DisruptionShortenedDto"
+            },
+            "description": "Lista utrudnień",
+            "nullable": true
+          },
+          "dt": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik typów utrudnień (kod -> nazwa). Pomijany gdy dictionaries=false.",
+            "nullable": true
+          },
+          "sts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik stacji (id -> nazwa). Pomijany gdy dictionaries=false.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO dla utrudnień - odpowiedź API (wersja ze skróconymi nazwami pól)"
+      },
+      "DisruptionShortenedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID utrudnienia",
+            "format": "int64"
+          },
+          "tc": {
+            "type": "string",
+            "description": "Kod typu utrudnienia",
+            "nullable": true
+          },
+          "sst": {
+            "type": "integer",
+            "description": "ID stacji początkowej",
+            "format": "int32",
+            "nullable": true
+          },
+          "est": {
+            "type": "integer",
+            "description": "ID stacji końcowej",
+            "format": "int32",
+            "nullable": true
+          },
+          "msg": {
+            "type": "string",
+            "description": "Treść wiadomości",
+            "nullable": true
+          },
+          "ar": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffectedRouteShortenedDto"
+            },
+            "description": "Lista tras dotkniętych utrudnieniem",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Utrudnienie (wersja ze skróconymi nazwami)"
+      },
+      "FieldDefinition": {
+        "type": "object",
+        "properties": {
+          "shortName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Definicja pola"
+      },
+      "FieldDictionaryResponse": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldDefinition"
+            },
+            "nullable": true
+          },
+          "trainStatuses": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik statusów pociągu (tylko dla operations)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź ze słownikiem pól"
+      },
+      "GenerateApiKeyRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Name/description for the API key"
+          },
+          "organization": {
+            "type": "string",
+            "description": "Organization name (optional)",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string",
+            "description": "Imię osoby kontaktowej (opcjonalne)",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Nazwisko osoby kontaktowej (opcjonalne)",
+            "nullable": true
+          },
+          "dunsNumber": {
+            "type": "string",
+            "description": "DUNS number - 9-digit unique business identifier (optional)",
+            "nullable": true
+          },
+          "contactEmail": {
+            "type": "string",
+            "description": "Contact email (optional)",
+            "format": "email",
+            "nullable": true
+          },
+          "expectedUsage": {
+            "type": "string",
+            "description": "Expected usage level for informational purposes (optional)",
+            "nullable": true
+          },
+          "acceptTermsOfService": {
+            "type": "boolean",
+            "description": "Akceptacja regulaminu korzystania z API (wymagane)"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for generating a new API key"
+      },
+      "LimitChangeRequest": {
+        "required": [
+          "justification",
+          "requestedTier"
+        ],
+        "type": "object",
+        "properties": {
+          "requestedTier": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "description": "Wnioskowany pakiet: Basic (100/godz., 1 000/dzień), Standard (500/godz., 5 000/dzień), Premium (2 000/godz., 20 000/dzień)"
+          },
+          "justification": {
+            "maxLength": 1000,
+            "minLength": 20,
+            "type": "string",
+            "description": "Uzasadnienie - opis zastosowania i powodu, dla którego obecny limit jest niewystarczający (20-1000 znaków)"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wniosek o zmianę pakietu limitów zapytań"
+      },
+      "OperationResponseDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationInfoDto"
+          },
+          "trains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainOperationDto"
+            },
+            "description": "Lista pociągów w wykonaniu",
+            "nullable": true
+          },
+          "stations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik stacji (ID -> Nazwa)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO dla wykonania - odpowiedź API"
+      },
+      "OperationResponseShortenedDto": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "pg": {
+            "$ref": "#/components/schemas/PaginationInfoShortenedDto"
+          },
+          "tr": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainOperationShortenedDto"
+            },
+            "description": "Lista pociągów w wykonaniu",
+            "nullable": true
+          },
+          "st": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Słownik stacji (ID -> Nazwa)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO dla wykonania - odpowiedź API (wersja ze skróconymi nazwami pól)"
+      },
+      "OperationStationDto": {
+        "type": "object",
+        "properties": {
+          "stationId": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "plannedSequenceNumber": {
+            "type": "integer",
+            "description": "Planowy numer na trasie",
+            "format": "int32",
+            "nullable": true
+          },
+          "actualSequenceNumber": {
+            "type": "integer",
+            "description": "Rzeczywisty numer na trasie",
+            "format": "int32"
+          },
+          "plannedArrival": {
+            "type": "string",
+            "description": "Planowy moment przyjazdu (data + godzina, UTC nieoznaczone). Liczony jako OperatingDate + planowa godzina przyjazdu.\r\nFormat `date-time` — spójny z ActualArrival. Pomijany gdy withPlanned=false.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "plannedDeparture": {
+            "type": "string",
+            "description": "Planowy moment odjazdu (data + godzina). Format `date-time` — spójny z ActualDeparture. Pomijany gdy withPlanned=false.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "plannedArrivalTime": {
+            "type": "string",
+            "description": "[DEPRECATED — zostanie usunięte w wersji 2.0] Planowa godzina przyjazdu (TimeSpan, format `date-span`).\r\nPole przejściowe zachowane dla kompatybilności z wersjami klientów sprzed 1.1.0.\r\nNowi klienci powinni używać PlannedArrival (pełny date-time).",
+            "format": "duration",
+            "nullable": true
+          },
+          "plannedDepartureTime": {
+            "type": "string",
+            "description": "[DEPRECATED — zostanie usunięte w wersji 2.0] Planowa godzina odjazdu (TimeSpan).\r\nPole przejściowe — nowi klienci powinni używać PlannedDeparture (date-time).",
+            "format": "duration",
+            "nullable": true
+          },
+          "arrivalDelayMinutes": {
+            "type": "integer",
+            "description": "Opóźnienie przyjazdu w minutach (tylko gdy withPlanned=true, null jeśli brak danych)",
+            "format": "int32",
+            "nullable": true
+          },
+          "departureDelayMinutes": {
+            "type": "integer",
+            "description": "Opóźnienie odjazdu w minutach (tylko gdy withPlanned=true, null jeśli brak danych)",
+            "format": "int32",
+            "nullable": true
+          },
+          "actualArrival": {
+            "type": "string",
+            "description": "Rzeczywisty czas przyjazdu",
+            "format": "date-time",
+            "nullable": true
+          },
+          "actualDeparture": {
+            "type": "string",
+            "description": "Rzeczywisty czas odjazdu",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isConfirmed": {
+            "type": "boolean",
+            "description": "Czy przejazd potwierdzony"
+          },
+          "isCancelled": {
+            "type": "boolean",
+            "description": "Przejazd odwołany"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wykonanie przejazdu przez stację"
+      },
+      "OperationStationShortenedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "psn": {
+            "type": "integer",
+            "description": "Planowy numer na trasie",
+            "format": "int32",
+            "nullable": true
+          },
+          "asn": {
+            "type": "integer",
+            "description": "Rzeczywisty numer na trasie",
+            "format": "int32"
+          },
+          "pa": {
+            "type": "string",
+            "description": "Planowy moment przyjazdu (date-time). Pomijany gdy withPlanned=false.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pd": {
+            "type": "string",
+            "description": "Planowy moment odjazdu (date-time). Pomijany gdy withPlanned=false.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pat": {
+            "type": "string",
+            "description": "[DEPRECATED — do usunięcia w v2.0] Planowa godzina przyjazdu (TimeSpan). Użyj `pa`.",
+            "format": "duration",
+            "nullable": true
+          },
+          "pdt": {
+            "type": "string",
+            "description": "[DEPRECATED — do usunięcia w v2.0] Planowa godzina odjazdu (TimeSpan). Użyj `pd`.",
+            "format": "duration",
+            "nullable": true
+          },
+          "adm": {
+            "type": "integer",
+            "description": "Opóźnienie przyjazdu w minutach (tylko gdy withPlanned=true)",
+            "format": "int32",
+            "nullable": true
+          },
+          "ddm": {
+            "type": "integer",
+            "description": "Opóźnienie odjazdu w minutach (tylko gdy withPlanned=true)",
+            "format": "int32",
+            "nullable": true
+          },
+          "aa": {
+            "type": "string",
+            "description": "Rzeczywisty czas przyjazdu",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ad": {
+            "type": "string",
+            "description": "Rzeczywisty czas odjazdu",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cf": {
+            "type": "boolean",
+            "description": "Czy przejazd potwierdzony"
+          },
+          "cn": {
+            "type": "boolean",
+            "description": "Przejazd odwołany"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wykonanie przejazdu przez stację (wersja ze skróconymi nazwami)"
+      },
+      "OperationStatisticsDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "date": {
+            "type": "string",
+            "description": "Data dla której wygenerowano statystyki",
+            "format": "date-time"
+          },
+          "totalTrains": {
+            "type": "integer",
+            "description": "Całkowita liczba pociągów",
+            "format": "int32"
+          },
+          "notStarted": {
+            "type": "integer",
+            "description": "Liczba pociągów które nie ruszyły (status S)",
+            "format": "int32"
+          },
+          "inProgress": {
+            "type": "integer",
+            "description": "Liczba pociągów w trakcie kursu (status P)",
+            "format": "int32"
+          },
+          "completed": {
+            "type": "integer",
+            "description": "Liczba pociągów które zakończyły kurs (status C)",
+            "format": "int32"
+          },
+          "cancelled": {
+            "type": "integer",
+            "description": "Liczba pociągów odwołanych (status X)",
+            "format": "int32"
+          },
+          "partialCancelled": {
+            "type": "integer",
+            "description": "Liczba pociągów częściowo odwołanych - odwołanie na części trasy (status Q)",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Statystyki statusów pociągów"
+      },
+      "PaginationInfoDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Numer aktualnej strony (od 1)",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Liczba rekordów na stronie",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Całkowita liczba rekordów",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Całkowita liczba stron",
+            "format": "int32"
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "description": "Czy istnieje następna strona"
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "description": "Czy istnieje poprzednia strona"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Informacje o paginacji"
+      },
+      "PaginationInfoShortenedDto": {
+        "type": "object",
+        "properties": {
+          "p": {
+            "type": "integer",
+            "description": "Numer aktualnej strony (od 1)",
+            "format": "int32"
+          },
+          "ps": {
+            "type": "integer",
+            "description": "Liczba rekordów na stronie",
+            "format": "int32"
+          },
+          "tc": {
+            "type": "integer",
+            "description": "Całkowita liczba rekordów",
+            "format": "int32"
+          },
+          "tp": {
+            "type": "integer",
+            "description": "Całkowita liczba stron",
+            "format": "int32"
+          },
+          "hn": {
+            "type": "boolean",
+            "description": "Czy istnieje następna strona"
+          },
+          "hp": {
+            "type": "boolean",
+            "description": "Czy istnieje poprzednia strona"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Informacje o paginacji (wersja ze skróconymi nazwami)"
+      },
+      "PrivacyContentResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Full content of Privacy Policy",
+            "nullable": true
+          },
+          "format": {
+            "type": "string",
+            "description": "Content format (markdown)",
+            "nullable": true
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "Date of last update",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "description": "Language of the document (pl or en)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for privacy policy content"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "RouteDto": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy (numer roczny rozkładu, np. 25 = rozkład 2025/2026).\r\nW parze ze ScheduleId+OrderId jednoznacznie identyfikuje trasę rozkładową.",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "Identyfikator zamówienia trasy (stabilny w obrębie rozkładu).\r\nRazem ze ScheduleId tworzy klucz dla `/schedules/route/{scheduleId}/{orderId}`.\r\nJedna trasa rozkładowa kursuje w wielu dniach — zob. OperatingDates.",
+            "format": "int32"
+          },
+          "trainOrderId": {
+            "type": "integer",
+            "description": "Identyfikator zamówienia konkretnego pociągu (przejazdu) — obecny tylko gdy różni się od OrderId,\r\nnp. gdy ten sam wzorzec trasy jest realizowany przez kilka odrębnych pociągów.\r\nStosowany w polu \"toid\" obiektów AffectedRoute oraz w `/operations/train/{scheduleId}/{orderId}/{operatingDate}`.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nazwa pociągu",
+            "nullable": true
+          },
+          "carrierCode": {
+            "type": "string",
+            "description": "Kod przewoźnika",
+            "nullable": true
+          },
+          "nationalNumber": {
+            "type": "string",
+            "description": "Numer krajowy",
+            "nullable": true
+          },
+          "internationalArrivalNumber": {
+            "type": "string",
+            "description": "Międzynarodowy numer przyjazdu",
+            "nullable": true
+          },
+          "internationalDepartureNumber": {
+            "type": "string",
+            "description": "Międzynarodowy numer odjazdu",
+            "nullable": true
+          },
+          "commercialCategorySymbol": {
+            "type": "string",
+            "description": "Symbol kategorii handlowej",
+            "nullable": true
+          },
+          "operatingDates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Lista dat kursowania",
+            "nullable": true
+          },
+          "stations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StationOnRouteDto"
+            },
+            "nullable": true
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionDto"
+            },
+            "description": "Lista powiązań",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Informacje o trasie pociągu (pełne nazwy pól)"
+      },
+      "RouteIdDto": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy (numer roczny rozkładu, np. 25 = 2025/2026).\r\nRazem z OrderId tworzy klucz dla `/schedules/route/{scheduleId}/{orderId}`.",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "Identyfikator zamówienia trasy (stabilny w obrębie rozkładu).",
+            "format": "int32"
+          },
+          "trainOrderId": {
+            "type": "integer",
+            "description": "Identyfikator zamówienia konkretnego pociągu — używany w `/operations/train/{scheduleId}/{orderId}/{operatingDate}`.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nazwa pociągu",
+            "nullable": true
+          },
+          "carrierCode": {
+            "type": "string",
+            "description": "Kod przewoźnika",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Identyfikator trasy (pełne nazwy pól)"
+      },
+      "RouteIdShortenedDto": {
+        "type": "object",
+        "properties": {
+          "sid": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy",
+            "format": "int32"
+          },
+          "oid": {
+            "type": "integer",
+            "description": "ID zamówienia",
+            "format": "int32"
+          },
+          "toid": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu",
+            "format": "int32"
+          },
+          "nm": {
+            "type": "string",
+            "description": "Nazwa pociągu",
+            "nullable": true
+          },
+          "cc": {
+            "type": "string",
+            "description": "Kod przewoźnika",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Identyfikator trasy (skrócone nazwy)"
+      },
+      "RouteIdsResponseDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "date": {
+            "type": "string",
+            "description": "Data kursowania",
+            "format": "date"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Całkowita liczba tras",
+            "format": "int32"
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteIdDto"
+            },
+            "description": "Lista ID tras",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą ID tras (pełne nazwy pól)"
+      },
+      "RouteIdsResponseShortenedDto": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "d": {
+            "type": "string",
+            "description": "Data kursowania",
+            "format": "date"
+          },
+          "c": {
+            "type": "integer",
+            "description": "Całkowita liczba tras",
+            "format": "int32"
+          },
+          "r": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteIdShortenedDto"
+            },
+            "description": "Lista ID tras",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą ID tras (skrócone nazwy)"
+      },
+      "RouteShortenedDto": {
+        "type": "object",
+        "properties": {
+          "sid": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy",
+            "format": "int32"
+          },
+          "oid": {
+            "type": "integer",
+            "description": "ID zamówienia",
+            "format": "int32"
+          },
+          "toid": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu. Zwracany tylko gdy różni się od OrderId (oid).",
+            "format": "int32"
+          },
+          "nm": {
+            "type": "string",
+            "description": "Nazwa pociągu",
+            "nullable": true
+          },
+          "cc": {
+            "type": "string",
+            "description": "Kod przewoźnika",
+            "nullable": true
+          },
+          "nn": {
+            "type": "string",
+            "description": "Numer krajowy",
+            "nullable": true
+          },
+          "ian": {
+            "type": "string",
+            "description": "Międzynarodowy numer przyjazdu",
+            "nullable": true
+          },
+          "idn": {
+            "type": "string",
+            "description": "Międzynarodowy numer odjazdu",
+            "nullable": true
+          },
+          "ccs": {
+            "type": "string",
+            "description": "Symbol kategorii handlowej",
+            "nullable": true
+          },
+          "od": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Lista dat kursowania",
+            "nullable": true
+          },
+          "st": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StationOnRouteShortenedDto"
+            },
+            "description": "Lista stacji na trasie",
+            "nullable": true
+          },
+          "cn": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionShortenedDto"
+            },
+            "description": "Lista powiązań",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Informacje o trasie pociągu (skrócone nazwy)"
+      },
+      "ScheduleResponseDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "period": {
+            "$ref": "#/components/schemas/DatePeriodDto"
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteDto"
+            },
+            "description": "Lista tras (pociągów)",
+            "nullable": true
+          },
+          "dictionaries": {
+            "$ref": "#/components/schemas/DictionariesDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO dla rozkładu planowego - odpowiedź API (pełne nazwy pól)"
+      },
+      "ScheduleResponseShortenedDto": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "string",
+            "description": "Data i czas wygenerowania odpowiedzi (UTC)",
+            "format": "date-time"
+          },
+          "pr": {
+            "$ref": "#/components/schemas/DatePeriodShortenedDto"
+          },
+          "rt": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteShortenedDto"
+            },
+            "description": "Lista tras (pociągów)",
+            "nullable": true
+          },
+          "dc": {
+            "$ref": "#/components/schemas/DictionariesShortenedDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "DTO dla rozkładu planowego - odpowiedź API (skrócone nazwy pól dla mniejszego rozmiaru)"
+      },
+      "ServiceDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Kod usługi",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Opis usługi",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Usługa w słowniku (pełne nazwy pól)"
+      },
+      "ServiceDictionaryShortenedDto": {
+        "type": "object",
+        "properties": {
+          "cd": {
+            "type": "string",
+            "description": "Kod usługi",
+            "nullable": true
+          },
+          "ds": {
+            "type": "string",
+            "description": "Opis usługi",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Usługa w słowniku (skrócone nazwy)"
+      },
+      "StationDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nazwa stacji",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Stacja w słowniku (pełne nazwy pól)"
+      },
+      "StationDictionaryShortenedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "nm": {
+            "type": "string",
+            "description": "Nazwa stacji",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Stacja w słowniku (skrócone nazwy)"
+      },
+      "StationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID stacji - używane w filtrach",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Pełna nazwa stacji",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Dane stacji"
+      },
+      "StationOnRouteDto": {
+        "type": "object",
+        "properties": {
+          "stationId": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "orderNumber": {
+            "type": "integer",
+            "description": "Numer kolejności",
+            "format": "int32"
+          },
+          "arrivalCommercialCategory": {
+            "type": "string",
+            "description": "Kategoria handlowa przyjazdu",
+            "nullable": true
+          },
+          "arrivalTrainNumber": {
+            "type": "string",
+            "description": "Numer pociągu przyjazdu",
+            "nullable": true
+          },
+          "arrivalPlatform": {
+            "type": "string",
+            "description": "Peron przyjazdu",
+            "nullable": true
+          },
+          "arrivalTrack": {
+            "type": "string",
+            "description": "Tor przyjazdu",
+            "nullable": true
+          },
+          "arrivalDay": {
+            "type": "integer",
+            "description": "Dzień przyjazdu (offset)",
+            "format": "int32",
+            "nullable": true
+          },
+          "arrivalTime": {
+            "type": "string",
+            "description": "Czas przyjazdu",
+            "format": "duration",
+            "nullable": true
+          },
+          "departureCommercialCategory": {
+            "type": "string",
+            "description": "Kategoria handlowa odjazdu",
+            "nullable": true
+          },
+          "departureTrainNumber": {
+            "type": "string",
+            "description": "Numer pociągu odjazdu",
+            "nullable": true
+          },
+          "departurePlatform": {
+            "type": "string",
+            "description": "Peron odjazdu",
+            "nullable": true
+          },
+          "departureTrack": {
+            "type": "string",
+            "description": "Tor odjazdu",
+            "nullable": true
+          },
+          "departureDay": {
+            "type": "integer",
+            "description": "Dzień odjazdu (offset)",
+            "format": "int32",
+            "nullable": true
+          },
+          "departureTime": {
+            "type": "string",
+            "description": "Czas odjazdu",
+            "format": "duration",
+            "nullable": true
+          },
+          "stopTypeId": {
+            "type": "integer",
+            "description": "ID typu postoju",
+            "format": "int32",
+            "nullable": true
+          },
+          "stopTypeName": {
+            "type": "string",
+            "description": "Nazwa typu postoju",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Stacja na trasie (pełne nazwy pól)"
+      },
+      "StationOnRouteShortenedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID stacji",
+            "format": "int32"
+          },
+          "ord": {
+            "type": "integer",
+            "description": "Numer kolejności",
+            "format": "int32"
+          },
+          "acc": {
+            "type": "string",
+            "description": "Kategoria handlowa przyjazdu",
+            "nullable": true
+          },
+          "atn": {
+            "type": "string",
+            "description": "Numer pociągu przyjazdu",
+            "nullable": true
+          },
+          "apl": {
+            "type": "string",
+            "description": "Peron przyjazdu",
+            "nullable": true
+          },
+          "atr": {
+            "type": "string",
+            "description": "Tor przyjazdu",
+            "nullable": true
+          },
+          "ady": {
+            "type": "integer",
+            "description": "Dzień przyjazdu (offset)",
+            "format": "int32",
+            "nullable": true
+          },
+          "atm": {
+            "type": "string",
+            "description": "Czas przyjazdu",
+            "format": "duration",
+            "nullable": true
+          },
+          "dcc": {
+            "type": "string",
+            "description": "Kategoria handlowa odjazdu",
+            "nullable": true
+          },
+          "dtn": {
+            "type": "string",
+            "description": "Numer pociągu odjazdu",
+            "nullable": true
+          },
+          "dpl": {
+            "type": "string",
+            "description": "Peron odjazdu",
+            "nullable": true
+          },
+          "dtr": {
+            "type": "string",
+            "description": "Tor odjazdu",
+            "nullable": true
+          },
+          "ddy": {
+            "type": "integer",
+            "description": "Dzień odjazdu (offset)",
+            "format": "int32",
+            "nullable": true
+          },
+          "dtm": {
+            "type": "string",
+            "description": "Czas odjazdu",
+            "format": "duration",
+            "nullable": true
+          },
+          "sti": {
+            "type": "integer",
+            "description": "ID typu postoju",
+            "format": "int32",
+            "nullable": true
+          },
+          "stn": {
+            "type": "string",
+            "description": "Nazwa typu postoju",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Stacja na trasie (skrócone nazwy)"
+      },
+      "StationUsageInfo": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Informacje o użyciu ID stacji"
+      },
+      "StationsResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StationDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "returnedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/StationUsageInfo"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą stacji"
+      },
+      "StopTypeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID typu postoju",
+            "format": "int32"
+          },
+          "description": {
+            "type": "string",
+            "description": "Opis typu postoju",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Dane typu postoju"
+      },
+      "StopTypesResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stopTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StopTypeDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Odpowiedź z listą typów postojów"
+      },
+      "TermsContentResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Version of Terms of Service",
+            "nullable": true
+          },
+          "effectiveDate": {
+            "type": "string",
+            "description": "Date when this version became effective",
+            "nullable": true
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "Date of last update",
+            "nullable": true
+          },
+          "content": {
+            "type": "string",
+            "description": "Full content of Terms of Service",
+            "nullable": true
+          },
+          "format": {
+            "type": "string",
+            "description": "Content format (markdown)",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "description": "Language of the document (pl or en)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for terms content"
+      },
+      "TermsVersionResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Current version of Terms of Service",
+            "nullable": true
+          },
+          "effectiveDate": {
+            "type": "string",
+            "description": "Date when this version became effective",
+            "nullable": true
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "Date of last update",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response model for terms version"
+      },
+      "TrainOperationDto": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy",
+            "format": "int32"
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "ID zamówienia",
+            "format": "int32"
+          },
+          "trainOrderId": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu",
+            "format": "int32"
+          },
+          "operatingDate": {
+            "type": "string",
+            "description": "Data kursowania pociągu",
+            "format": "date"
+          },
+          "trainStatus": {
+            "type": "string",
+            "description": "Status pociągu (S=NotStarted, P=InProgress, C=Completed, X=Cancelled, Q=PartialCancelled)",
+            "nullable": true
+          },
+          "stations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationStationDto"
+            },
+            "description": "Lista stacji na trasie pociągu",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wykonanie pociągu"
+      },
+      "TrainOperationShortenedDto": {
+        "type": "object",
+        "properties": {
+          "sid": {
+            "type": "integer",
+            "description": "ID rozkładu jazdy",
+            "format": "int32"
+          },
+          "oid": {
+            "type": "integer",
+            "description": "ID zamówienia",
+            "format": "int32"
+          },
+          "toid": {
+            "type": "integer",
+            "description": "ID zamówienia pociągu",
+            "format": "int32"
+          },
+          "od": {
+            "type": "string",
+            "description": "Data kursowania pociągu",
+            "format": "date"
+          },
+          "s": {
+            "type": "string",
+            "description": "Status pociągu (S=NotStarted, P=InProgress, C=Completed, X=Cancelled, Q=PartialCancelled)",
+            "nullable": true
+          },
+          "st": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationStationShortenedDto"
+            },
+            "description": "Lista stacji na trasie pociągu",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wykonanie pociągu (wersja ze skróconymi nazwami)"
+      },
+      "UpdateApiKeyRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated name/description",
+            "nullable": true
+          },
+          "organization": {
+            "type": "string",
+            "description": "Updated organization name",
+            "nullable": true
+          },
+          "contactEmail": {
+            "type": "string",
+            "description": "Updated contact email",
+            "nullable": true
+          },
+          "hourlyRateLimit": {
+            "type": "integer",
+            "description": "Updated hourly rate limit",
+            "format": "int32",
+            "nullable": true
+          },
+          "dailyRateLimit": {
+            "type": "integer",
+            "description": "Updated daily rate limit",
+            "format": "int32",
+            "nullable": true
+          },
+          "accessLevel": {
+            "type": "string",
+            "description": "Updated access level",
+            "nullable": true
+          },
+          "expirationDate": {
+            "type": "string",
+            "description": "Updated expiration date",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for updating API key settings"
+      },
+      "VerifyEmailByCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "8-digit verification code (can be sent as string or number)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for email verification by code (API key provided via X-Api-Key header)"
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "description": "API Key authentication using X-API-Key header. For admin endpoints, use an administrator API key.",
+        "name": "X-API-Key",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    { }
+  ],
+  "tags": [
+    {
+      "name": "ApiKey",
+      "description": "Controller for API key management operations"
+    },
+    {
+      "name": "DataVersion",
+      "description": "Controller for checking data version"
+    },
+    {
+      "name": "Dictionaries",
+      "description": "Kontroler dla słowników danych (przewoźnicy, stacje, kategorie handlowe, itp.)"
+    },
+    {
+      "name": "Disruptions",
+      "description": "Kontroler dla utrudnień w ruchu kolejowym"
+    },
+    {
+      "name": "FieldDictionary",
+      "description": "Kontroler ze słownikiem skrótów pól JSON"
+    },
+    {
+      "name": "OpenDataAPI"
+    },
+    {
+      "name": "Operations",
+      "description": "Kontroler dla wykonania pociągów w czasie rzeczywistym"
+    },
+    {
+      "name": "Privacy",
+      "description": "Controller for Privacy Policy operations"
+    },
+    {
+      "name": "Schedules",
+      "description": "Kontroler dla rozkładu planowego"
+    },
+    {
+      "name": "Terms",
+      "description": "Controller for Terms of Service operations"
+    }
+  ]
+}

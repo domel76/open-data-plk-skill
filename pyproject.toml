@@ -1,0 +1,55 @@
+[project]
+name = "plk-open-data"
+version = "0.1.0"
+description = "Klient Pythona do Open Railway Data API (PKP PLK): rozkład planowy, wykonanie real-time, utrudnienia"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-httpx>=0.30",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+plk-open-data = "plk_open_data.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plk_open_data"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: wymaga ustawionego PLK_API_KEY, wykonuje prawdziwe zapytania do API",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",
+    # Typer wymaga wywołania typer.Option(...) w wartościach domyślnych —
+    # to jego udokumentowany wzorzec, nie błąd.
+    "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Testy: atrapy celowo rzucają szerokie wyjątki i używają zagnieżdżonych `with`.
+"tests/*" = ["B017", "SIM117"]
