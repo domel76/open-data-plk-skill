@@ -1,6 +1,13 @@
 ---
 name: plk-open-data
 description: Dane o kolejach w Polsce z API PKP PLK (Open Railway Data) — rozkład planowy, opóźnienia w czasie rzeczywistym, utrudnienia, słowniki stacji i przewoźników. Używaj przy pytaniach o trasy, rozkłady jazdy, opóźnienia pociągów, odwołania, dostępność stacji albo przy programowaniu integracji z API PLK.
+metadata:
+  openclaw:
+    emoji: "🚆"
+    homepage: "https://github.com/domel76/open-data-plk-skill"
+    primaryEnv: PLK_API_KEY
+    requires:
+      bins: ["uv"]
 ---
 
 # Open Railway Data API (PKP PLK)
@@ -18,6 +25,24 @@ adres bazowy `https://pdp-api.plk-sa.pl`.
 - „Ile stacji ma Warszawa w słowniku API?”
 - Budowanie integracji, skryptu albo raportu na danych kolejowych.
 
+## Uruchamianie
+
+Wszystkie komendy poniżej zakładają, że `{baseDir}` to katalog tego skilla
+(OpenClaw podstawia go automatycznie), a `uv` jest dostępne w `PATH`.
+`uvx --from "{baseDir}" plk-open-data` buduje pakiet z dołączonego źródła
+i uruchamia CLI — bez tworzenia `.venv` w skillu, bez publikacji na PyPI.
+Pierwsze uruchomienie dociąga zależności (kilka sekund), kolejne startują
+z cache.
+
+Gdy `uv` nie ma:
+
+```bash
+winget install --id=astral-sh.uv -e                 # Windows
+curl -LsSf https://astral.sh/uv/install.sh | sh     # macOS/Linux
+```
+
+Po instalacji zrestartuj gateway OpenClaw, żeby zobaczył nowy plik w `PATH`.
+
 ## Krok 1: klucz API
 
 **Większość zapytań wymaga klucza.** Bez niego działają tylko wersja API
@@ -27,7 +52,7 @@ jednorazowo aktywować i zatwierdzają go administratorzy PKP.
 ### 1.1. Sprawdź, czy już go masz
 
 ```bash
-python -m plk_open_data doctor
+uvx --from "{baseDir}" plk-open-data doctor
 ```
 
 Jeśli w wyniku widzisz `api_key_present: true` — przeskocz do Kroku 2.
@@ -35,7 +60,7 @@ Jeśli w wyniku widzisz `api_key_present: true` — przeskocz do Kroku 2.
 ### 1.2. Zarejestruj się
 
 ```bash
-python -m plk_open_data register \
+uvx --from "{baseDir}" plk-open-data register \
   --name "Nazwa twojego projektu" \
   --email twoj@email.pl
 ```
@@ -55,22 +80,22 @@ oraz **8-cyfrowym kodem**. Użyj jednego z nich:
 
 ```bash
 # wariant A: 8-cyfrowy kod z e-maila (wymaga klucza w środowisku, patrz Krok 2)
-python -m plk_open_data verify 12345678
+uvx --from "{baseDir}" plk-open-data verify 12345678
 
 # wariant B: token z linku aktywacyjnego
-python -m plk_open_data verify --token TOKEN_Z_LINKU
+uvx --from "{baseDir}" plk-open-data verify --token TOKEN_Z_LINKU
 ```
 
 Wiadomość nie dotarła? Poproś o ponowne wysłanie (max 1/min, 5/godz.):
 
 ```bash
-python -m plk_open_data resend
+uvx --from "{baseDir}" plk-open-data resend
 ```
 
 ### 1.4. Zaakceptuj regulamin
 
 ```bash
-python -m plk_open_data accept-terms
+uvx --from "{baseDir}" plk-open-data accept-terms
 ```
 
 Bez tego API odmawia dostępu do danych.
@@ -78,7 +103,7 @@ Bez tego API odmawia dostępu do danych.
 ### 1.5. Sprawdź, czy działa
 
 ```bash
-python -m plk_open_data doctor
+uvx --from "{baseDir}" plk-open-data doctor
 ```
 
 Powinno pokazać `name`, `accessLevel`, `hourly_limit`, `daily_limit`
@@ -104,12 +129,25 @@ PLK_API_KEY=twoj-klucz
 
 Plik `.env` jest już w `.gitignore`.
 
+**OpenClaw — `~/.openclaw/openclaw.json`** (klucz wstrzykiwany na czas tury,
+tylko dla uruchomień na hoście, nie w sandboxie):
+
+```json5
+{
+  skills: {
+    entries: {
+      "plk-open-data": { apiKey: "twoj-klucz" }
+    }
+  }
+}
+```
+
 ## Krok 3: pierwsze zapytanie
 
 Najprościej — połączenia, jedno na wiersz:
 
 ```bash
-python -m plk_open_data connections -f WARSZAWA -t ZAKOPANE -d 2026-11-09 --after 04:00 --before 11:00
+uvx --from "{baseDir}" plk-open-data connections -f WARSZAWA -t ZAKOPANE -d 2026-11-09 --after 04:00 --before 11:00
 ```
 
 ```
@@ -189,7 +227,7 @@ listę ID wszystkich stacji aglomeracji.
 **Wariant `/shortened`** daje 2–3× mniejszy transfer, ale nazwy pól **kolidują
 między endpointami**: `ts` oznacza `trains` w `/operations`, a `routes` w
 `/schedules`. Domyślnie używaj wariantu pełnego. Słownik skrótów:
-`python -m plk_open_data fields operations`.
+`uvx --from "{baseDir}" plk-open-data fields operations`.
 
 ## Gotowe zapytania
 
@@ -249,20 +287,20 @@ przez parametr `search` API, który wymaga dokładnej pisowni.
 Wiersz poleceń:
 
 ```bash
-python -m plk_open_data find-station "Kraków"    # -> identyfikatory do filtrów
-python -m plk_open_data find-city "Poznań"
-python -m plk_open_data carriers
+uvx --from "{baseDir}" plk-open-data find-station "Kraków"    # -> identyfikatory do filtrów
+uvx --from "{baseDir}" plk-open-data find-city "Poznań"
+uvx --from "{baseDir}" plk-open-data carriers
 ```
 
 ## Diagnostyka
 
 ```bash
-python -m plk_open_data doctor      # klucz, limity, dostępność, zużycie, cache
-python -m plk_open_data info        # stan klucza
-python -m plk_open_data limits      # limity (działa nawet po przekroczeniu)
-python -m plk_open_data usage       # statystyki zużycia
-python -m plk_open_data version     # wersja API (bez klucza)
-python -m plk_open_data cache       # list | clear | purge
+uvx --from "{baseDir}" plk-open-data doctor      # klucz, limity, dostępność, zużycie, cache
+uvx --from "{baseDir}" plk-open-data info        # stan klucza
+uvx --from "{baseDir}" plk-open-data limits      # limity (działa nawet po przekroczeniu)
+uvx --from "{baseDir}" plk-open-data usage       # statystyki zużycia
+uvx --from "{baseDir}" plk-open-data version     # wersja API (bez klucza)
+uvx --from "{baseDir}" plk-open-data cache       # list | clear | purge
 ```
 
 Wynik błędu zawsze zawiera `errorCode` i ścieżkę, więc łatwo zgłosić problem
@@ -271,7 +309,7 @@ do PKP PLK.
 ## Wniosek o wyższy limit
 
 ```bash
-python -m plk_open_data request-limit Standard \
+uvx --from "{baseDir}" plk-open-data request-limit Standard \
   -j "Przetwarzam rozkłady dla 30 stacji dziennie w projekcie analitycznym, obecny limit 100/godz. jest niewystarczający."
 ```
 
@@ -280,9 +318,21 @@ Dla jednego klucza może istnieć tylko jeden oczekujący wniosek.
 
 ## Instalacja
 
+**W OpenClaw** — skill z GitHuba, CLI uruchamiane przez `uvx` (patrz
+„Uruchamianie”):
+
+```bash
+openclaw skills install git:domel76/open-data-plk-skill --global
+```
+
+`git:` nie jest zarządzany przez `openclaw skills update` — po zmianach
+w repo reinstaluj z `--force`.
+
+**W repo, do pracy nad kodem:**
+
 ```bash
 uv venv
-uv pip install -e .
+uv pip install -e ".[dev]"
 ```
 
 Zależności: `httpx`, `pydantic`, `typer`. Python 3.11+.
